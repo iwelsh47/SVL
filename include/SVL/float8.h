@@ -2,13 +2,6 @@
 #error Please include the SVL.h header only
 #endif
 
-#include <cstring>  // for memcpy, memset etc
-#include <utility>  // for std::move
-
-#ifdef DEBUG
-#include <iostream>
-#endif
-
 struct Vector8f {
   VECTOR_NUMBER_SETUP(Vector8f, 8, Vector8b, flt, Vector4f);
   
@@ -117,10 +110,10 @@ struct Vector8f {
   
   //! Load n values from an array. Rest of data will be set to 0
   self_t& load_partial(const scalar_t* arr, i64 n) {
-    n = CLAMP(0, n, step);
+    n = SVL_CLAMP(0, n, step);
 #if SVL_SIMD_LEVEL < SVL_AVX2
     data.v0_3.load_partial(arr, n);
-    data.v4_7.load_partial(arr + half_step, MAX(0, n - half_step));
+    data.v4_7.load_partial(arr + half_step, SVL_MAX(0, n - half_step));
 #else
     if (n == 0) *this = zeros();
     else if (n <= half_step)
@@ -147,7 +140,7 @@ struct Vector8f {
   }
   //! Store n values in an array
   void store_partial(scalar_t* arr, i64 n) const {
-    n = CLAMP(0, n, step);
+    n = SVL_CLAMP(0, n, step);
 #if SVL_SIMD_LEVEL < SVL_AVX2
     if (n <= half_step) data.v0_3.store_partial(arr, n);
     else {
@@ -167,7 +160,7 @@ struct Vector8f {
   // Access single value
   //! RO access to a single value
   scalar_t access(i64 idx) const {
-    idx = CLAMP(0, idx, step - 1);
+    idx = SVL_CLAMP(0, idx, step - 1);
     scalar_t tmp[step];
     store(tmp);
     return tmp[idx];
@@ -176,7 +169,7 @@ struct Vector8f {
   scalar_t operator[](i64 idx) const { return access(idx); }
   //! Assign a single value
   self_t& assign(scalar_t v, i64 idx) {
-    idx = CLAMP(0, idx, step - 1);
+    idx = SVL_CLAMP(0, idx, step - 1);
     switch (idx) {
 #if SVL_SIMD_LEVEL < SVL_AVX2
       case 0: case 1: case 2: case 3: data.v0_3.assign(v, idx); break;
@@ -427,10 +420,10 @@ struct Vector8f {
   //! Find the maximum element in a vector
   friend inline scalar_t horizontal_max(const self_t& a) {
 #if SVL_SIMD_LEVEL < SVL_AVX2
-    return MAX(horizontal_max(a.data.v0_3),
+    return SVL_MAX(horizontal_max(a.data.v0_3),
                horizontal_max(a.data.v4_7));
 #else
-    return MAX(horizontal_max(half_t(_mm256_extractf128_ps(a.data, 0))),
+    return SVL_MAX(horizontal_max(half_t(_mm256_extractf128_ps(a.data, 0))),
                horizontal_max(half_t(_mm256_extractf128_ps(a.data, 1))));
 #endif
   }
@@ -446,10 +439,10 @@ struct Vector8f {
   //! Find the minimum element in a vector
   friend inline scalar_t horizontal_min(const self_t& a) {
 #if SVL_SIMD_LEVEL < SVL_AVX2
-    return MIN(horizontal_min(a.data.v0_3),
+    return SVL_MIN(horizontal_min(a.data.v0_3),
                horizontal_min(a.data.v4_7));
 #else
-    return MIN(horizontal_min(half_t(_mm256_extractf128_ps(a.data, 0))),
+    return SVL_MIN(horizontal_min(half_t(_mm256_extractf128_ps(a.data, 0))),
                horizontal_min(half_t(_mm256_extractf128_ps(a.data, 1))));
 #endif
   }
@@ -470,7 +463,7 @@ struct Vector8f {
     return self_t(sin(x.data.v0_3), sin(x.data.v4_7));
 #else
     self_t r;
-    FOR_RANGE(step) r.assign(sin(x[i]), i);
+    SVL_FOR_RANGE(step) r.assign(sin(x[i]), i);
     return r;
 #endif
   }
@@ -481,7 +474,7 @@ struct Vector8f {
     return self_t(cos(x.data.v0_3), cos(x.data.v4_7));
 #else
     self_t r;
-    FOR_RANGE(step) r.assign(cos(x[i]), i);
+    SVL_FOR_RANGE(step) r.assign(cos(x[i]), i);
     return r;
 #endif
   }
@@ -491,7 +484,7 @@ struct Vector8f {
     return self_t(tan(x.data.v0_3), tan(x.data.v4_7));
 #else
     self_t r;
-    FOR_RANGE(step) r.assign(tan(x[i]), i);
+    SVL_FOR_RANGE(step) r.assign(tan(x[i]), i);
     return r;
 #endif
   }
@@ -501,7 +494,7 @@ struct Vector8f {
     return self_t(asin(x.data.v0_3), asin(x.data.v4_7));
 #else
     self_t r;
-    FOR_RANGE(step) r.assign(asin(x[i]), i);
+    SVL_FOR_RANGE(step) r.assign(asin(x[i]), i);
     return r;
 #endif
   }
@@ -512,7 +505,7 @@ struct Vector8f {
     return self_t(acos(x.data.v0_3), acos(x.data.v4_7));
 #else
     self_t r;
-    FOR_RANGE(step) r.assign(acos(x[i]), i);
+    SVL_FOR_RANGE(step) r.assign(acos(x[i]), i);
     return r;
 #endif
   }
@@ -522,7 +515,7 @@ struct Vector8f {
     return self_t(atan(x.data.v0_3), atan(x.data.v4_7));
 #else
     self_t r;
-    FOR_RANGE(step) r.assign(atan(x[i]), i);
+    SVL_FOR_RANGE(step) r.assign(atan(x[i]), i);
     return r;
 #endif
   }
@@ -533,7 +526,7 @@ struct Vector8f {
                   atan2(y.data.v4_7, x.data.v4_7));
 #else
     self_t r;
-    FOR_RANGE(step) r.assign(atan2(y[i], x[i]), i);
+    SVL_FOR_RANGE(step) r.assign(atan2(y[i], x[i]), i);
     return r;
 #endif
   }
@@ -553,7 +546,7 @@ struct Vector8f {
 #ifdef DEBUG
 std::ostream& operator<<(std::ostream& os, const Vector8f& v) {
   os << "<";
-  FOR_RANGE(v.step) os << v[i] << ((i < (v.step - 1)) ? ", " : "");
+  SVL_FOR_RANGE(v.step) os << v[i] << ((i < (v.step - 1)) ? ", " : "");
   os << ">";
   return os;
 }

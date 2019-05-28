@@ -2,13 +2,6 @@
 #error Please include the SVL.h header only
 #endif
 
-#include <cstring>  // for memcpy, memset etc
-#include <utility>  // for std::move
-
-#ifdef DEBUG
-#include <iostream>
-#endif
-
 struct Vector16f {
   VECTOR_NUMBER_SETUP(Vector16f, 16, Vector16b, flt, Vector8f);
   
@@ -124,10 +117,10 @@ struct Vector16f {
   
   //! Load n values from an array. Rest of data will be set to 0
   self_t& load_partial(const scalar_t* arr, i64 n) {
-    n = CLAMP(0, n, step);
+    n = SVL_CLAMP(0, n, step);
 #if SVL_SIMD_LEVEL < SVL_AVX512
     data.v0_7.load_partial(arr, n);
-    data.v8_f.load_partial(arr + half_step, MAX(0, n - half_step));
+    data.v8_f.load_partial(arr + half_step, SVL_MAX(0, n - half_step));
 #else
     #error AVX512 instruction set not currently supported
 #endif
@@ -149,7 +142,7 @@ struct Vector16f {
   }
   //! Store n values in an array
   void store_partial(scalar_t* arr, i64 n) const {
-    n = CLAMP(0, n, step);
+    n = SVL_CLAMP(0, n, step);
 #if SVL_SIMD_LEVEL < SVL_AVX512
     if (n <= half_step) data.v0_7.store_partial(arr, n);
     else {
@@ -164,7 +157,7 @@ struct Vector16f {
   // Access single value
   //! RO access to a single value
   scalar_t access(i64 idx) const {
-    idx = CLAMP(0, idx, step - 1);
+    idx = SVL_CLAMP(0, idx, step - 1);
     scalar_t tmp[step];
     store(tmp);
     return tmp[idx];
@@ -173,7 +166,7 @@ struct Vector16f {
   scalar_t operator[](i64 idx) const { return access(idx); }
   //! Assign a single value
   self_t& assign(scalar_t v, i64 idx) {
-    idx = CLAMP(0, idx, step - 1);
+    idx = SVL_CLAMP(0, idx, step - 1);
     switch (idx) {
 #if SVL_SIMD_LEVEL < SVL_AVX512
       case 0: case 1: case 2: case 3: case 4: case 5: case 6: case 7:
@@ -415,7 +408,7 @@ struct Vector16f {
   //! Find the maximum element in a vector
   friend inline scalar_t horizontal_max(const self_t& a) {
 #if SVL_SIMD_LEVEL < SVL_AVX512
-    return MAX(horizontal_max(a.data.v0_7),
+    return SVL_MAX(horizontal_max(a.data.v0_7),
                horizontal_max(a.data.v8_f));
 #else
     #error AVX512 instruction set not currently supported
@@ -433,7 +426,7 @@ struct Vector16f {
   //! Find the minimum element in a vector
   friend inline scalar_t horizontal_min(const self_t& a) {
 #if SVL_SIMD_LEVEL < SVL_AVX512
-    return MIN(horizontal_min(a.data.v0_7),
+    return SVL_MIN(horizontal_min(a.data.v0_7),
                horizontal_min(a.data.v8_f));
 #else
     #error AVX512 instruction set not currently supported
@@ -523,7 +516,7 @@ struct Vector16f {
 #ifdef DEBUG
 std::ostream& operator<<(std::ostream& os, const Vector16f& v) {
   os << "<";
-  FOR_RANGE(v.step) os << v[i] << ((i < (v.step - 1)) ? ", " : "");
+  SVL_FOR_RANGE(v.step) os << v[i] << ((i < (v.step - 1)) ? ", " : "");
   os << ">";
   return os;
 }

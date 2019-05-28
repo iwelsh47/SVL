@@ -2,13 +2,6 @@
 #error Please include the SVL.h header only
 #endif
 
-#include <cstring>  // for memcpy, memset etc
-#include <utility>  // for std::move
-
-#ifdef DEBUG
-#include <iostream>
-#endif
-
 struct Vector8b {
   VECTOR_BOOL_SETUP(Vector8b, 8, Vector4b);
   
@@ -109,7 +102,7 @@ struct Vector8b {
   // Access single value
   //! RO access to a single value
   bool access(i64 idx) const {
-    idx = CLAMP(0, idx, step - 1);
+    idx = SVL_CLAMP(0, idx, step - 1);
     switch (idx) {
 #if SVL_SIMD_LEVEL < SVL_AVX2
       case 0: case 1: case 2: case 3: return data.v0_3[idx];
@@ -134,7 +127,7 @@ struct Vector8b {
 #if SVL_SIMD_LEVEL >= SVL_AVX2
     scalar_t V = v ? true_ : false_;
 #endif
-    idx = CLAMP(0, idx, step - 1);
+    idx = SVL_CLAMP(0, idx, step - 1);
     switch (idx) {
 #if SVL_SIMD_LEVEL < SVL_AVX2
       case 0: case 1: case 2: case 3: data.v0_3.assign(v, idx); break;
@@ -244,7 +237,7 @@ struct Vector8b {
 #ifdef DEBUG
 std::ostream& operator<<(std::ostream& os, const Vector8b& v) {
   os << "<" << std::boolalpha;
-  FOR_RANGE(v.step) os << v[i] << ((i < (v.step - 1)) ? ", " : "");
+  SVL_FOR_RANGE(v.step) os << v[i] << ((i < (v.step - 1)) ? ", " : "");
   os << ">";
   return os;
 }

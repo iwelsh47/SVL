@@ -2,13 +2,6 @@
 #error Please include the SVL.h header only
 #endif
 
-#include <cstring>  // for memcpy, memset etc
-#include <utility>  // for std::move
-
-#ifdef DEBUG
-#include <iostream>
-#endif
-
 struct Vector4f {
   VECTOR_NUMBER_SETUP(Vector4f, 4, Vector4b, flt, std::nullptr_t);
   
@@ -107,7 +100,7 @@ struct Vector4f {
   }
   //! Load n values from an array. Rest of data will be set to 0
   self_t& load_partial(const scalar_t* arr, i64 n) {
-    n = CLAMP(0, n, step);
+    n = SVL_CLAMP(0, n, step);
 #if SVL_SIMD_LEVEL < SVL_SSE
     memcpy(&data, arr, n * sizeof(scalar_t));
     memset(&data + n, 0, (step - n) * sizeof(scalar_t));
@@ -145,7 +138,7 @@ struct Vector4f {
   }
   //! Store n values in an array
   void store_partial(scalar_t* arr, i64 n) const {
-    n = CLAMP(0, n, step);
+    n = SVL_CLAMP(0, n, step);
 #if SVL_SIMD_LEVEL < SVL_SSE
     memcpy(arr, &data, sizeof(scalar_t) * n);
 #else
@@ -171,7 +164,7 @@ struct Vector4f {
   //! RO access to a single value
   //! \todo maybe faster to store in tmp array then extract from index
   scalar_t access(i64 idx) const {
-    idx = CLAMP(0, idx, step - 1);
+    idx = SVL_CLAMP(0, idx, step - 1);
     scalar_t tmp[step];
     store(tmp);
     return tmp[idx];
@@ -180,7 +173,7 @@ struct Vector4f {
   scalar_t operator[](i64 idx) const { return access(idx); }
   //! Assign a single value
   self_t& assign(scalar_t v, i64 idx) {
-    idx = CLAMP(0, idx, step - 1);
+    idx = SVL_CLAMP(0, idx, step - 1);
     switch (idx) {
 #if SVL_SIMD_LEVEL < SVL_SSE
       case 0: data.v0 = v; break;
@@ -440,32 +433,32 @@ struct Vector4f {
   //! Find the maximum elements between two vectors
   friend inline self_t max(const self_t& a, const self_t& b) {
 #if SVL_SIMD_LEVEL < SVL_SSE
-    return self_t(MAX(a.data.v0, b.data.v0),
-                  MAX(a.data.v1, b.data.v1),
-                  MAX(a.data.v2, b.data.v2),
-                  MAX(a.data.v3, b.data.v3));
+    return self_t(SVL_MAX(a.data.v0, b.data.v0),
+                  SVL_MAX(a.data.v1, b.data.v1),
+                  SVL_MAX(a.data.v2, b.data.v2),
+                  SVL_MAX(a.data.v3, b.data.v3));
 #else
     return _mm_max_ps(a, b);
 #endif
   }
   //! Find the maximum element in a vector
   friend inline scalar_t horizontal_max(const self_t& a) {
-    return MAX(MAX(a[0], a[1]), MAX(a[2], a[3]));
+    return SVL_MAX(SVL_MAX(a[0], a[1]), SVL_MAX(a[2], a[3]));
   }
   //! Find the minimum elements between two vectors
   friend inline self_t min(const self_t& a, const self_t& b) {
 #if SVL_SIMD_LEVEL < SVL_SSE
-    return self_t(MIN(a.data.v0, b.data.v0),
-                  MIN(a.data.v1, b.data.v1),
-                  MIN(a.data.v2, b.data.v2),
-                  MIN(a.data.v3, b.data.v3));
+    return self_t(SVL_MIN(a.data.v0, b.data.v0),
+                  SVL_MIN(a.data.v1, b.data.v1),
+                  SVL_MIN(a.data.v2, b.data.v2),
+                  SVL_MIN(a.data.v3, b.data.v3));
 #else
     return _mm_min_ps(a, b);
 #endif
   }
   //! Find the minimum element in a vector
   friend inline scalar_t horizontal_min(const self_t& a) {
-    return MIN(MIN(a[0], a[1]), MIN(a[2], a[3]));
+    return SVL_MIN(SVL_MIN(a[0], a[1]), SVL_MIN(a[2], a[3]));
   }
   
   // Special math functions
@@ -490,7 +483,7 @@ struct Vector4f {
                   sin(x.data.v3));
 #else
     self_t r;
-    FOR_RANGE(step) r.assign(sin(x[i]), i);
+    SVL_FOR_RANGE(step) r.assign(sin(x[i]), i);
     return r;
 #endif
   }
@@ -504,7 +497,7 @@ struct Vector4f {
                   cos(x.data.v3));
 #else
     self_t r;
-    FOR_RANGE(step) r.assign(cos(x[i]), i);
+    SVL_FOR_RANGE(step) r.assign(cos(x[i]), i);
     return r;
 #endif
   }
@@ -517,7 +510,7 @@ struct Vector4f {
                   tan(x.data.v3));
 #else
     self_t r;
-    FOR_RANGE(step) r.assign(tan(x[i]), i);
+    SVL_FOR_RANGE(step) r.assign(tan(x[i]), i);
     return r;
 #endif
   }
@@ -530,7 +523,7 @@ struct Vector4f {
                   asin(x.data.v3));
 #else
     self_t r;
-    FOR_RANGE(step) r.assign(asin(x[i]), i);
+    SVL_FOR_RANGE(step) r.assign(asin(x[i]), i);
     return r;
 #endif
   }
@@ -544,7 +537,7 @@ struct Vector4f {
                   acos(x.data.v3));
 #else
     self_t r;
-    FOR_RANGE(step) r.assign(acos(x[i]), i);
+    SVL_FOR_RANGE(step) r.assign(acos(x[i]), i);
     return r;
 #endif
   }
@@ -557,7 +550,7 @@ struct Vector4f {
                   atan(x.data.v3));
 #else
     self_t r;
-    FOR_RANGE(step) r.assign(atan(x[i]), i);
+    SVL_FOR_RANGE(step) r.assign(atan(x[i]), i);
     return r;
 #endif
   }
@@ -570,7 +563,7 @@ struct Vector4f {
                   atan2(y.data.v3, x.data.v3));
 #else
     self_t r;
-    FOR_RANGE(step) r.assign(atan2(y[i], x[i]), i);
+    SVL_FOR_RANGE(step) r.assign(atan2(y[i], x[i]), i);
     return r;
 #endif
   }
@@ -589,7 +582,7 @@ struct Vector4f {
 #ifdef DEBUG
 std::ostream& operator<<(std::ostream& os, const Vector4f& v) {
   os << "<";
-  FOR_RANGE(v.step) os << v[i] << ((i < (v.step - 1)) ? ", " : "");
+  SVL_FOR_RANGE(v.step) os << v[i] << ((i < (v.step - 1)) ? ", " : "");
   os << ">";
   return os;
 }

@@ -2,13 +2,6 @@
 #error Please include the SVL.h header only
 #endif
 
-#include <cstring>  // for memcpy, memset etc
-#include <utility>  // for std::move
-
-#ifdef DEBUG
-#include <iostream>
-#endif
-
 struct Vector4b {
   VECTOR_BOOL_SETUP(Vector4b, 4, std::nullptr_t);
   
@@ -111,7 +104,7 @@ struct Vector4b {
   // Access single value
   //! RO access to a single value
   bool access(i64 idx) const {
-    idx = CLAMP(0, idx, step - 1);
+    idx = SVL_CLAMP(0, idx, step - 1);
     switch (idx) {
 #if SVL_SIMD_LEVEL < SVL_SSE
       case 0: return bool(data.v0);
@@ -132,7 +125,7 @@ struct Vector4b {
   //! Assign a single value
   self_t& assign(bool v, i64 idx) {
     scalar_t V = v ? true_ : false_;
-    idx = CLAMP(0, idx, step - 1);
+    idx = SVL_CLAMP(0, idx, step - 1);
     switch (idx) {
 #if SVL_SIMD_LEVEL < SVL_SSE
       case 0: data.v0 = V; break;
@@ -154,7 +147,7 @@ struct Vector4b {
   friend inline self_t operator&(const self_t& a, const self_t& b) {
 #if SVL_SIMD_LEVEL < SVL_SSE
     self_t r;
-    FOR_RANGE(step) r.assign(a[i] & b[i], i);
+    SVL_FOR_RANGE(step) r.assign(a[i] & b[i], i);
 #else
     self_t r = _mm_and_si128(a, b);
 #endif
@@ -169,7 +162,7 @@ struct Vector4b {
   friend inline self_t operator|(const self_t& a, const self_t& b) {
 #if SVL_SIMD_LEVEL < SVL_SSE
     self_t r;
-    FOR_RANGE(step) r.assign(a[i] | b[i], i);
+    SVL_FOR_RANGE(step) r.assign(a[i] | b[i], i);
 #else
     self_t r = _mm_or_si128(a, b);
 #endif
@@ -184,7 +177,7 @@ struct Vector4b {
   friend inline self_t operator^(const self_t& a, const self_t& b) {
 #if SVL_SIMD_LEVEL < SVL_SSE
     self_t r;
-    FOR_RANGE(step) r.assign(a[i] ^ b[i], i);
+    SVL_FOR_RANGE(step) r.assign(a[i] ^ b[i], i);
 #else
     self_t r = _mm_xor_si128(a, b);
 #endif
@@ -218,7 +211,7 @@ struct Vector4b {
   //! Return if all values are true
   bool all() const {
 #if SVL_SIMD_LEVEL < SVL_SSE
-    FOR_RANGE(step) if (!(*this)[i]) return false;
+    SVL_FOR_RANGE(step) if (!(*this)[i]) return false;
     return true;
 #else
     return _mm_test_all_ones(data);
@@ -227,7 +220,7 @@ struct Vector4b {
   //! Return if any values are true
   bool any() const {
 #if SVL_SIMD_LEVEL < SVL_SSE
-    FOR_RANGE(step) if ((*this)[i]) return true;
+    SVL_FOR_RANGE(step) if ((*this)[i]) return true;
     return false;
 #else
     return _mm_test_mix_ones_zeros(data, self_t(true));
@@ -240,7 +233,7 @@ struct Vector4b {
 #ifdef DEBUG
 std::ostream& operator<<(std::ostream& os, const Vector4b& v) {
   os << "<" << std::boolalpha;
-  FOR_RANGE(v.step) os << v[i] << ((i < (v.step - 1)) ? ", " : "");
+  SVL_FOR_RANGE(v.step) os << v[i] << ((i < (v.step - 1)) ? ", " : "");
   os << ">";
   return os;
 }
