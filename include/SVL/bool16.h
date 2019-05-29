@@ -238,7 +238,7 @@ struct Vector16b {
 };
 
 #ifdef DEBUG
-std::ostream& operator<<(std::ostream& os, const Vector16b& v) {
+static inline std::ostream& operator<<(std::ostream& os, const Vector16b& v) {
   os << "<" << std::boolalpha;
   SVL_FOR_RANGE(v.step) os << v[i] << ((i < (v.step - 1)) ? ", " : "");
   os << ">";

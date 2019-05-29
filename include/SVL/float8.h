@@ -544,7 +544,7 @@ struct Vector8f {
 
 
 #ifdef DEBUG
-std::ostream& operator<<(std::ostream& os, const Vector8f& v) {
+static inline std::ostream& operator<<(std::ostream& os, const Vector8f& v) {
   os << "<";
   SVL_FOR_RANGE(v.step) os << v[i] << ((i < (v.step - 1)) ? ", " : "");
   os << ">";
