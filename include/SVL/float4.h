@@ -13,7 +13,6 @@ struct Vector4f {
 #endif
   intrinsic_t data;
   
-  
   static self_t zeros() {
 #if SVL_SIMD_LEVEL < SVL_SSE
     self_t r;
@@ -152,7 +151,7 @@ struct Vector4f {
         // Store a double, shift down then store a single
       case 3:
         _mm_store_sd((double *)arr, _mm_castps_pd(data));
-        _mm_store_ss(arr + 2, _mm_movelh_ps(data, data));
+        _mm_store_ss(arr + 2, _mm_movehl_ps(data, data));
         break;
         // Normal store
       case 4: store(arr); break;
