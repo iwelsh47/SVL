@@ -101,8 +101,8 @@ struct Vector4f {
   self_t& load_partial(const scalar_t* arr, i64 n) {
     n = SVL_CLAMP(0, n, step);
 #if SVL_SIMD_LEVEL < SVL_SSE
-    memcpy(&data, arr, n * sizeof(scalar_t));
-    memset(&data + n, 0, (step - n) * sizeof(scalar_t));
+    memset(&data, 0, sizeof(data));
+    memcpy(&data, arr, (u64)n * sizeof(scalar_t));
 #else
     switch (n) {
         // Nothing to load
@@ -139,7 +139,7 @@ struct Vector4f {
   void store_partial(scalar_t* arr, i64 n) const {
     n = SVL_CLAMP(0, n, step);
 #if SVL_SIMD_LEVEL < SVL_SSE
-    memcpy(arr, &data, sizeof(scalar_t) * n);
+    memcpy(arr, &data, sizeof(scalar_t) * (u64)n);
 #else
     switch (n) {
         // Nothing to store

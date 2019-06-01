@@ -38,18 +38,18 @@ using dbl = double;
 
 //! Sets up the commoon header space for vector bool types
 #define VECTOR_BOOL_SETUP(type_name, sz, partial) \
-using scalar_t = u32;\
-static const i64 step = sz; \
-static const scalar_t true_ = 0xFFFFFFFF; \
-static const scalar_t false_ = 0; \
+using scalar_t = i32;\
+static const u32 step = (u32)sz; \
+static const scalar_t true_ = (scalar_t)0xFFFFFFFF; \
+static const scalar_t false_ = (scalar_t)0; \
 using self_t = type_name; \
 using half_t = partial;
 
 //! Sets up the common header space for vector number types
 #define VECTOR_NUMBER_SETUP(type_name, sz, bool_type, value_t, partial) \
 using scalar_t = value_t; \
-static const i64 step = sz; \
-static const i64 half_step = step / 2; \
+static const u32 step = sz; \
+static const u32 half_step = step / 2; \
 using self_t = type_name; \
 using bool_t = bool_type; \
 using half_t = partial;
