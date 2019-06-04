@@ -35,7 +35,7 @@ struct Vector16f {
   ~Vector16f() = default;
   
   //! Construct from an array
-  Vector16f(scalar_t* arr) {
+  Vector16f(const scalar_t* arr) {
 #if SVL_SIMD_LEVEL < SVL_AVX512
     data = { half_t(arr), half_t(arr + half_step) };
 #else

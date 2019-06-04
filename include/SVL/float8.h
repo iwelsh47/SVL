@@ -35,7 +35,7 @@ struct Vector8f {
   ~Vector8f() = default;
   
   //! Construct from an array
-  Vector8f(scalar_t* arr) {
+  Vector8f(const scalar_t* arr) {
 #if SVL_SIMD_LEVEL < SVL_AVX2
     data = { half_t(arr), half_t(arr + half_step) };
 #else

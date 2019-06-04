@@ -43,7 +43,7 @@ static const u32 step = (u32)sz; \
 static const scalar_t true_ = (scalar_t)0xFFFFFFFF; \
 static const scalar_t false_ = (scalar_t)0; \
 using self_t = type_name; \
-using half_t = partial;
+using half_t = partial
 
 //! Sets up the common header space for vector number types
 #define VECTOR_NUMBER_SETUP(type_name, sz, bool_type, value_t, partial) \
@@ -52,7 +52,7 @@ static const u32 step = sz; \
 static const u32 half_step = step / 2; \
 using self_t = type_name; \
 using bool_t = bool_type; \
-using half_t = partial;
+using half_t = partial
 
 // Load the forward declarations
 #include "SVL_fwd.h"
