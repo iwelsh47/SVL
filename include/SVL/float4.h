@@ -576,6 +576,25 @@ struct Vector4f {
     return _mm_and_ps(_mm_castsi128_ps(mask), x.data);
 #endif
   }
+  
+  //! Floor of the values of x
+  friend inline self_t floor(const self_t& x) {
+#if SVL_SIMD_LEVEL < SVL_SSE
+    return self_t(floor(x.data.v0), floor(x.data.v1),
+                  floor(x.data.v2), floor(x.data.v3));
+#else
+    return _mm_floor_ps(x.data);
+#endif
+  }
+  //! Ceil of the values of x
+  friend inline self_t ceil(const self_t& x) {
+#if SVL_SIMD_LEVEL < SVL_SSE
+    return self_t(ceil(x.data.v0), ceil(x.data.v1),
+                  ceil(x.data.v2), ceil(x.data.v3));
+#else
+    return _mm_ceil_ps(x.data);
+#endif
+  }
 };
 
 #ifdef DEBUG

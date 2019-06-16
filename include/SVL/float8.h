@@ -540,6 +540,24 @@ struct Vector8f {
     return _mm256_and_ps(_mm256_castsi256_ps(mask), x.data);
 #endif
   }
+  
+  //! Floor of the values of x
+  friend inline self_t floor(const self_t& x) {
+#if SVL_SIMD_LEVEL < SVL_AVX2
+    return self_t(floor(x.data.v0_3), floor(x.data.v4_7));
+#else
+    return _mm256_floor_ps(x.data);
+#endif
+  }
+  //! Ceil of the values of x
+  friend inline self_t ceil(const self_t& x) {
+#if SVL_SIMD_LEVEL < SVL_AVX2
+    return self_t(ceil(x.data.v0_3), ceil(x.data.v4_7));
+#else
+    return _mm256_ceil_ps(x.data);
+#endif
+  }
+  
 };
 
 

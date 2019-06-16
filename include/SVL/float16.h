@@ -510,6 +510,24 @@ struct Vector16f {
     #error AVX512 instruction set not currently supported
 #endif
   }
+  
+  //! Floor of the values of x
+  friend inline self_t floor(const self_t& x) {
+#if SVL_SIMD_LEVEL < SVL_AVX512
+    return self_t(floor(x.data.v0_7), floor(x.data.v8_f));
+#else
+    #error AVX512 instruction set not currently supported
+#endif
+  }
+  //! Ceil of the values of x
+  friend inline self_t ceil(const self_t& x) {
+#if SVL_SIMD_LEVEL < SVL_AVX512
+    return self_t(ceil(x.data.v0_7), ceil(x.data.v8_f));
+#else
+    #error AVX512 instruction set not currently supported
+#endif
+  }
+  
 };
 
 
