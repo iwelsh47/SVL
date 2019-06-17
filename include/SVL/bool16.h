@@ -227,14 +227,16 @@ struct Vector16b {
   }
   //! Return if any values are true
   bool any() const {
+    return !none();
+  }
+  //! Return if no values are true
+  bool none() const { 
 #if SVL_SIMD_LEVEL < SVL_AVX512
-    return data.v0_7.any() | data.v8_f.any();
+    return data.v0_7.none() && data.v8_f.none();
 #else
     #error AVX512 instruction set not currently supported
 #endif
-  }
-  //! Return if no values are true
-  bool none() const { return !all(); }
+ }
 };
 
 #ifdef DEBUG

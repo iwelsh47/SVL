@@ -224,14 +224,16 @@ struct Vector8b {
   }
   //! Return if any values are true
   bool any() const {
-#if SVL_SIMD_LEVEL < SVL_AVX2
-    return data.v0_3.any() || data.v4_7.any();
-#else
-    return _mm256_testnzc_si256(data, self_t(true));
-#endif
+    return !none();
   }
   //! Return if no values are true
-  bool none() const { return !all(); }
+  bool none() const { 
+#if SVL_SIMD_LEVEL < SVL_AVX2
+    return data.v0_3.none() && data.v4_7.none();
+#else
+    return _mm256_testz_si256(data, self_t(true));
+#endif
+  }
 };
 
 #ifdef DEBUG

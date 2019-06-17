@@ -214,20 +214,22 @@ struct Vector4b {
     SVL_FOR_RANGE(step) if (!(*this)[i]) return false;
     return true;
 #else
-    return _mm_test_all_ones(data);
+    return _mm_testc_si128(data, self_t(true));
 #endif
   }
   //! Return if any values are true
   bool any() const {
-#if SVL_SIMD_LEVEL < SVL_SSE
-    SVL_FOR_RANGE(step) if ((*this)[i]) return true;
-    return false;
-#else
-    return _mm_test_mix_ones_zeros(data, self_t(true));
-#endif
+    return !none();
   }
   //! Return if no values are true
-  bool none() const { return !all(); }
+  bool none() const { 
+#if SVL_SIMD_LEVEL < SVL_SSE
+    SVL_FOR_RANGE(step) if ((*this)[i]) return false;
+    return true;
+#else
+    return _mm_testz_si128(data, self_t(true));
+#endif
+ }
 };
 
 #ifdef DEBUG
