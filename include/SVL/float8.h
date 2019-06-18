@@ -504,9 +504,48 @@ struct Vector8f {
 #if SVL_SIMD_LEVEL < SVL_AVX2
     return self_t(acos(x.data.v0_3), acos(x.data.v4_7));
 #else
-    self_t r;
-    SVL_FOR_RANGE(step) r.assign(acos(x[i]), i);
-    return r;
+    // Constants
+    const __m256 abs_mask = _mm256_castsi256_ps(_mm256_set1_epi32(0x7FFFFFFF));
+    const __m256 sign_mask = _mm256_castsi256_ps(_mm256_set1_epi32(0x80000000));
+    const __m256 halves = _mm256_set1_ps(0.5f);
+    const __m256 zeroes = _mm256_setzero_ps();
+    const __m256 pis = _mm256_set1_ps(3.14159265358979323846264338327950288419716939937510582097f);
+    const __m256 half_pis = _mm256_set1_ps(3.14159265358979323846264338327950288419716939937510582097f * 0.5f);
+
+    const __m256 C4 = _mm256_set1_ps(4.2163199048E-2f);
+    const __m256 C3 = _mm256_set1_ps(2.4181311049E-2f);
+    const __m256 C2 = _mm256_set1_ps(4.5470025998E-2f);
+    const __m256 C1 = _mm256_set1_ps(7.4953002686E-2f);
+    const __m256 C0 = _mm256_set1_ps(1.6666752422E-1f);
+    // End constants
+    
+    __m256 abs_x = _mm256_and_ps(x, abs_mask);
+    __m256 selector = _mm256_cmp_ps(abs_x, halves, 14);
+    __m256 x1 = _mm256_fnmadd_ps(halves, abs_x, halves);
+    __m256 x2 = _mm256_mul_ps(abs_x, abs_x);
+    __m256 x3 = _mm256_blendv_ps(x2, x1, selector);
+    __m256 sqrt_x1 = _mm256_sqrt_ps(x1);
+    __m256 x4 = _mm256_blendv_ps(abs_x, sqrt_x1, selector);
+
+    // Calculate c4*x^4 + c3*x^3 + c2*x^2 + c1*x + c0 where x = x3
+    __m256 x3_2 = _mm256_mul_ps(x3, x3);
+    __m256 x3_4 = _mm256_mul_ps(x3_2, x3_2);
+    __m256 c1_x_x3_p_c0 = _mm256_fmadd_ps(C1, x3, C0);
+    __m256 c3_x_x3_p_c2 = _mm256_fmadd_ps(C3, x3, C2);
+    __m256 c4_x_x34_p_y = _mm256_fmadd_ps(C4, x3_4, c1_x_x3_p_c0);
+    __m256 res = _mm256_fmadd_ps(c3_x_x3_p_c2, x3_2, c4_x_x34_p_y);
+    res = _mm256_fmadd_ps(res, _mm256_mul_ps(x3, x4), x4);
+    __m256 res1 = _mm256_add_ps(res, res);
+
+    __m256 selector_2 = _mm256_cmp_ps(x, zeroes, 1);
+    __m256 pi_minus_res1 = _mm256_sub_ps(pis, res1);
+    res1 = _mm256_blendv_ps(res1, pi_minus_res1, selector_2);
+
+    __m256 res2 = _mm256_and_ps(x, sign_mask);
+    res = _mm256_xor_ps(res, res2);
+    res2 = _mm256_sub_ps(half_pis, res);
+    res = _mm256_blendv_ps(res2, res1, selector);
+    return res;
 #endif
   }
   //! Calculates the arctangent of all elements in x
@@ -525,9 +564,48 @@ struct Vector8f {
     return self_t(atan2(y.data.v0_3, x.data.v0_3),
                   atan2(y.data.v4_7, x.data.v4_7));
 #else
-    self_t r;
-    SVL_FOR_RANGE(step) r.assign(atan2(y[i], x[i]), i);
-    return r;
+    // Constants
+    const __m256 C3 = _mm256_set1_ps(8.05374449538E-2f);
+    const __m256 C2 = _mm256_set1_ps(-1.38776856032E-1f);
+    const __m256 C1 = _mm256_set1_ps(1.99777106478E-1f);
+    const __m256 C0 = _mm256_set1_ps(-3.33329491539E-1f);
+    const __m256 piover2 = _mm256_set1_ps(1.57079632679489661923f);
+    const __m256 pi = _mm256_set1_ps(3.14159265358979323846f);
+    const __m256 sqrt2_minus1 = _mm256_set1_ps(0.41421356237309504880f);
+    const __m256 minus1 = _mm256_set1_ps(-1.f);
+    const __m256 plus1 = _mm256_set1_ps(1.f);
+    const __m256 piover4 = _mm256_set1_ps(0.785398163397448309616f);
+    const __m256 sign_mask = _mm256_castsi256_ps(_mm256_set1_epi32(0x80000000));
+    // End constants
+    
+    __m256 x1 = abs(x), y1 = abs(y);
+    __m256 swapxy = _mm256_castps_si256(_mm256_cmp_ps(y1, x1, 14));
+    __m256 x2 = _mm256_blendv_ps(x1, y1, swapxy);
+    __m256 y2 = _mm256_blendv_ps(y1, x1, swapxy);
+    __m256 t = _mm256_div_ps(y2, x2);
+    
+    __m256 notsmall = _mm256_castps_si256(_mm256_cmp_ps(t, sqrt2_minus1, 13));
+    __m256 a = _mm256_add_ps(t, _mm256_and_ps(notsmall, minus1));
+    __m256 b = _mm256_add_ps(plus1, _mm256_and_ps(notsmall, t));
+    __m256 s = _mm256_and_ps(notsmall, piover4);
+    __m256 z = _mm256_div_ps(a, b);
+    
+    __m256 zsq = _mm256_mul_ps(z, z);
+    
+    // Polynomial 3
+    __m256 zsqsq = _mm256_mul_ps(zsq, zsq);
+    __m256 fma1 = _mm256_fmadd_ps(C3, zsq, C2);
+    __m256 fma2 = _mm256_fmadd_ps(C1, zsq, C0);
+    __m256 res = _mm256_fmadd_ps(fma1, zsqsq, fma2);
+    res = _mm256_fmadd_ps(res, _mm256_mul_ps(zsq, z), z);
+    res = _mm256_add_ps(res, s);
+    
+    res = _mm256_blendv_ps(res, _mm256_sub_ps(piover2, res), swapxy);
+    res = _mm256_blendv_ps(res, _mm256_sub_ps(pi, res), _mm256_castps_si256(_mm256_cmp_ps(x, _mm256_setzero_ps(), 1)));
+    res = _mm256_blendv_ps(res, _mm256_setzero_ps(), _mm256_castps_si256(_mm256_cmp_ps(_mm256_or_ps(x, y), _mm256_setzero_ps(), 0)));
+    
+    res = _mm256_xor_ps(res, _mm256_and_ps(y, sign_mask));
+    return res;
 #endif
   }
   //! Remove the sign bit from all elements in x
