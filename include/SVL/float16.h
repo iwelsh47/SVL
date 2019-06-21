@@ -8,7 +8,7 @@ struct Vector16f {
 #if SVL_SIMD_LEVEL < SVL_AVX512
   using intrinsic_t = struct { half_t v0_7, v8_f; };
 #else
-  #error AVX512 instruction set not currently supported
+  using intrinsic_t = __m512;
 #endif
   intrinsic_t data;
   
@@ -16,7 +16,7 @@ struct Vector16f {
 #if SVL_SIMD_LEVEL < SVL_AVX512
     return self_t(half_t::zeros(), half_t::zeros());
 #else
-    #error AVX512 instruction set not currently supported
+    return _mm512_setzero_ps();
 #endif
   }
   
@@ -39,7 +39,7 @@ struct Vector16f {
 #if SVL_SIMD_LEVEL < SVL_AVX512
     data = { half_t(arr), half_t(arr + half_step) };
 #else
-    #error AVX512 instruction set not currently supported
+    data = _mm512_loadu_ps(arr);
 #endif
   }
   //! Broadcast a value to all elements
@@ -47,7 +47,7 @@ struct Vector16f {
 #if SVL_SIMD_LEVEL < SVL_AVX512
     data = { half_t(v), half_t(v) };
 #else
-    #error AVX512 instruction set not currently supported
+    data = _mm512_set1_ps(v);
 #endif
   }
   //! Construct from the given values
@@ -59,7 +59,8 @@ struct Vector16f {
     data = { half_t(v0, v1, v2, v3, v4, v5, v6, v7),
              half_t(v8, v9, va, vb, vc, vd, ve, vf) };
 #else
-    #error AVX512 instruction set not currently supported
+    data = _mm512_setr_ps(v0, v1, v2, v3, v4, v5, v6, v7,
+                          v8, v9, va, vb, vc, vd, ve, vf);
 #endif
   }
   //! Construct from two Vector8fs
@@ -67,7 +68,8 @@ struct Vector16f {
 #if SVL_SIMD_LEVEL < SVL_AVX512
     data = { a, b };
 #else
-    #error AVX512 instruction set not currently supported
+    union { half_t a; intrinsic_t b} z = a;
+    data = _mm512_insertf32x8(z.a, b, 1);
 #endif
   }
   //! Convert from intrinsic type
@@ -97,7 +99,7 @@ struct Vector16f {
     data.v0_7.load(arr);
     data.v8_f.load(arr + half_step);
 #else
-    #error AVX512 instruction set not currently supported
+    data = _mm512_loadu_ps(arr);
 #endif
     return *this;
   }
@@ -122,7 +124,7 @@ struct Vector16f {
     data.v0_7.load_partial(arr, n);
     data.v8_f.load_partial(arr + half_step, SVL_MAX(0, n - half_step));
 #else
-    #error AVX512 instruction set not currently supported
+    data = _mm512_maskz_loadu_ps((__mmask16)(1 << n) - 1, arr);
 #endif
     return *this;
   }
@@ -137,7 +139,7 @@ struct Vector16f {
     data.v0_7.store(arr);
     data.v8_f.store(arr + half_step);
 #else
-    #error AVX512 instruction set not currently supported
+    _mm512_storeu_ps(arr, data);
 #endif
   }
   //! Store n values in an array
@@ -150,7 +152,7 @@ struct Vector16f {
       data.v8_f.store_partial(arr + half_step, n - half_step);
     }
 #else
-    #error AVX512 instruction set not currently supported
+    _mm512_mask_storeu_ps(arr, (__mmask16)(1 << n) - 1, data);
 #endif
   }
   
@@ -167,15 +169,18 @@ struct Vector16f {
   //! Assign a single value
   self_t& assign(scalar_t v, i64 idx) {
     idx = SVL_CLAMP(0, idx, step - 1);
-    switch (idx) {
 #if SVL_SIMD_LEVEL < SVL_AVX512
+    switch (idx) {
       case 0: case 1: case 2: case 3: case 4: case 5: case 6: case 7:
         data.v0_7.assign(v, idx); break;
       default: data.v8_f.assign(v, idx - half_step); break;
-#else
-      #error AVX512 instruction set not currently supported
-#endif
     }
+#else
+    i32 vi = *(i32*)&v;
+    __m512i datai = _mm512_castps_si512(data);
+    datai = _mm512_mask_set1_epi32(datai, __mmask16(1 << idx), vi);
+    data = _mm512_castsi512_ps();
+#endif
     return *this;
   }
   
@@ -186,7 +191,7 @@ struct Vector16f {
     return self_t(a.data.v0_7 + b.data.v0_7,
                   a.data.v8_f + b.data.v8_f);
 #else
-    #error AVX512 instruction set not currently supported
+    return _mm512_add_ps(a, b);
 #endif
   }
   //! Addition of a scalar to a vector
@@ -226,7 +231,7 @@ struct Vector16f {
     return self_t(a.data.v0_7 - b.data.v0_7,
                   a.data.v8_f - b.data.v8_f);
 #else
-    #error AVX512 instruction set not currently supported
+    return _mm512_sub_ps(a, b);
 #endif
   }
   //! Subtraction of a scalar from a vector
@@ -270,7 +275,7 @@ struct Vector16f {
     return self_t(a.data.v0_7 * b.data.v0_7,
                   a.data.v8_f * b.data.v8_f);
 #else
-    #error AVX512 instruction set not currently supported
+    return _mm512_mul_ps(a, b);
 #endif
   }
   //! Multiplication of a vector by a scalar
@@ -299,7 +304,7 @@ struct Vector16f {
     return self_t(a.data.v0_7 / b.data.v0_7,
                   a.data.v8_f / b.data.v8_f);
 #else
-    #error AVX512 instruction set not currently supported
+    return _mm512_div_ps(a, b);
 #endif
   }
   //! Division of a vector by a scalar
@@ -329,7 +334,7 @@ struct Vector16f {
     return bool_t(a.data.v0_7 == b.data.v0_7,
                   a.data.v8_f == b.data.v8_f);
 #else
-    #error AVX512 instruction set not currently supported
+    return _mm512_cmpeq_ps_mask(a, b);
 #endif
   }
   //! Returns true for all elements where a != b
@@ -338,7 +343,7 @@ struct Vector16f {
     return bool_t(a.data.v0_7 != b.data.v0_7,
                   a.data.v8_f != b.data.v8_f);
 #else
-    #error AVX512 instruction set not currently supported
+    return _mm512_cmpneq_ps_mask(a, b);
 #endif
   }
   //! Returns true for all elements where a < b
@@ -347,7 +352,7 @@ struct Vector16f {
     return bool_t(a.data.v0_7 < b.data.v0_7,
                   a.data.v8_f < b.data.v8_f);
 #else
-    #error AVX512 instruction set not currently supported
+    return _mm512_cmplt_ps_mask(a, b);
 #endif
   }
   //! Returns true for all elements where a <= b
@@ -356,7 +361,7 @@ struct Vector16f {
     return bool_t(a.data.v0_7 <= b.data.v0_7,
                   a.data.v8_f <= b.data.v8_f);
 #else
-    #error AVX512 instruction set not currently supported
+    return _mm512_cmple_ps_mask(a, b);
 #endif
   }
   //! Returns true for all elements where a > b
@@ -365,7 +370,7 @@ struct Vector16f {
     return bool_t(a.data.v0_7 > b.data.v0_7,
                   a.data.v8_f > b.data.v8_f);
 #else
-    #error AVX512 instruction set not currently supported
+    return _mm512_cmpgt_ps_mask(a, b);
 #endif
   }
   //! Returns true for all elements where a >= b
@@ -374,7 +379,7 @@ struct Vector16f {
     return bool_t(a.data.v0_7 >= b.data.v0_7,
                   a.data.v8_f >= b.data.v8_f);
 #else
-    #error AVX512 instruction set not currently supported
+    return _mm512_cmpge_ps_mask(a, b);
 #endif
   }
   
@@ -385,7 +390,7 @@ struct Vector16f {
     return self_t(blend(a.data.v0_7, b.data.v0_7, c.data.v0_7),
                   blend(a.data.v8_f, b.data.v8_f, c.data.v8_f));
 #else
-    #error AVX512 instruction set not currently supported
+    return _mm512_mask_blend_ps(c, b, a);
 #endif
   }
   //! Returns the sum of all elements
@@ -393,7 +398,7 @@ struct Vector16f {
 #if SVL_SIMD_LEVEL < SVL_AVX512
     return horizontal_add(a.data.v0_7) + horizontal_add(a.data.v8_f);
 #else
-    #error AVX512 instruction set not currently supported
+    return _mm512_reduce_add_ps(a);
 #endif
   }
   //! Find the maximum elements between two vectors
@@ -402,7 +407,7 @@ struct Vector16f {
     return self_t(max(a.data.v0_7, b.data.v0_7),
                   max(a.data.v8_f, b.data.v8_f));
 #else
-    #error AVX512 instruction set not currently supported
+    return _mm512_max_ps(a, b);
 #endif
   }
   //! Find the maximum element in a vector
@@ -411,7 +416,8 @@ struct Vector16f {
     return SVL_MAX(horizontal_max(a.data.v0_7),
                horizontal_max(a.data.v8_f));
 #else
-    #error AVX512 instruction set not currently supported
+    return SVL_MAX(horizontal_max(half_t(_mm512_extractf32x8_ps(a, 0))),
+                   horizontal_max(half_t(_mm512_extractf32x8_ps(a, 1))));
 #endif
   }
   //! Find the minimum elements between two vectors
@@ -420,7 +426,7 @@ struct Vector16f {
     return self_t(min(a.data.v0_7, b.data.v0_7),
                   min(a.data.v8_f, b.data.v8_f));
 #else
-    #error AVX512 instruction set not currently supported
+    return _mm512_min_ps(a, b);
 #endif
   }
   //! Find the minimum element in a vector
@@ -429,7 +435,8 @@ struct Vector16f {
     return SVL_MIN(horizontal_min(a.data.v0_7),
                horizontal_min(a.data.v8_f));
 #else
-    #error AVX512 instruction set not currently supported
+    return SVL_MIN(horizontal_min(half_t(_mm512_extractf32x8_ps(a, 0))),
+                   horizontal_min(half_t(_mm512_extractf32x8_ps(a, 1))));
 #endif
   }
   
@@ -439,7 +446,7 @@ struct Vector16f {
 #if SVL_SIMD_LEVEL < SVL_AVX512
     return self_t(sqrt(a.data.v0_7), sqrt(a.data.v8_f));
 #else
-    #error AVX512 instruction set not currently supported
+    return _mm512_sqrt_ps(a);
 #endif
   }
   
@@ -448,7 +455,7 @@ struct Vector16f {
 #if SVL_SIMD_LEVEL < SVL_AVX512
     return self_t(sin(x.data.v0_7), sin(x.data.v8_f));
 #else
-    #error AVX512 instruction set not currently supported
+    return _mm512_sin_ps(x);
 #endif
   }
   
@@ -457,7 +464,7 @@ struct Vector16f {
 #if SVL_SIMD_LEVEL < SVL_AVX512
     return self_t(cos(x.data.v0_7), cos(x.data.v8_f));
 #else
-    #error AVX512 instruction set not currently supported
+    return _mm512_cos_ps(x);
 #endif
   }
   //! Calculates the tangent of all elements in x
@@ -465,7 +472,7 @@ struct Vector16f {
 #if SVL_SIMD_LEVEL < SVL_AVX512
     return self_t(tan(x.data.v0_7), tan(x.data.v8_f));
 #else
-    #error AVX512 instruction set not currently supported
+    return _mm512_tan_ps(x);
 #endif
   }
   //! Calculates the arcsine of all elements in x
@@ -473,7 +480,7 @@ struct Vector16f {
 #if SVL_SIMD_LEVEL < SVL_AVX512
     return self_t(asin(x.data.v0_7), asin(x.data.v8_f));
 #else
-    #error AVX512 instruction set not currently supported
+    return _mm512_asin_ps(x);
 #endif
   }
   
@@ -482,7 +489,7 @@ struct Vector16f {
 #if SVL_SIMD_LEVEL < SVL_AVX512
     return self_t(acos(x.data.v0_7), acos(x.data.v8_f));
 #else
-    #error AVX512 instruction set not currently supported
+    return _mm512_acos_ps(x);
 #endif
   }
   //! Calculates the arctangent of all elements in x
@@ -490,7 +497,7 @@ struct Vector16f {
 #if SVL_SIMD_LEVEL < SVL_AVX512
     return self_t(atan(x.data.v0_7), atan(x.data.v8_f));
 #else
-    #error AVX512 instruction set not currently supported
+    return _mm512_atan_ps(x);
 #endif
   }
   //! Calculates the arctangent of all elements in y/x determining the correct quadrant
@@ -499,7 +506,7 @@ struct Vector16f {
     return self_t(atan2(y.data.v0_7, x.data.v0_7),
                   atan2(y.data.v8_f, x.data.v8_f));
 #else
-    #error AVX512 instruction set not currently supported
+    return _mm512_atan2_ps(y, x);
 #endif
   }
   //! Remove the sign bit from all elements in x
@@ -507,7 +514,7 @@ struct Vector16f {
 #if SVL_SIMD_LEVEL < SVL_AVX512
     return self_t(abs(x.data.v0_7), abs(x.data.v8_f));
 #else
-    #error AVX512 instruction set not currently supported
+    return _mm512_abs_ps(x);
 #endif
   }
   
@@ -516,7 +523,7 @@ struct Vector16f {
 #if SVL_SIMD_LEVEL < SVL_AVX512
     return self_t(floor(x.data.v0_7), floor(x.data.v8_f));
 #else
-    #error AVX512 instruction set not currently supported
+    return _mm512_floor_ps(x);
 #endif
   }
   //! Ceil of the values of x
@@ -524,7 +531,7 @@ struct Vector16f {
 #if SVL_SIMD_LEVEL < SVL_AVX512
     return self_t(ceil(x.data.v0_7), ceil(x.data.v8_f));
 #else
-    #error AVX512 instruction set not currently supported
+    return _mm512_ceil_ps(x);
 #endif
   }
   
