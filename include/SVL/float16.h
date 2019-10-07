@@ -535,6 +535,15 @@ struct Vector16f {
 #endif
   }
   
+  //! Round the values of x
+  friend inline self_t round(const self_t& x) {
+#if SVL_SIMD_LEVEL < SVL_AVX512
+    return self_t(round(x.data.v0_7), round(x.data.v8_f));
+#else
+    return _mm512_round_ps(x.data, _MM_FROUND_TO_NEAREST_INT | _MM_FROUND_NO_EXC);
+#endif
+  }
+  
 };
 
 

@@ -595,6 +595,16 @@ struct Vector4f {
     return _mm_ceil_ps(x.data);
 #endif
   }
+  
+  //! Round the values of x
+  friend inline self_t round(const self_t& x) {
+#if SVL_SIMD_LEVEL < SVL_SSE
+    return self_t(round(x.data.v0), round(x.data.v1),
+                  round(x.data.v2), round(x.data.v3));
+#else
+    return _mm_round_ps(x.data, _MM_FROUND_TO_NEAREST_INT | _MM_FROUND_NO_EXC);
+#endif
+  }
 };
 
 #ifdef DEBUG

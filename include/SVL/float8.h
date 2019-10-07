@@ -636,6 +636,15 @@ struct Vector8f {
 #endif
   }
   
+  //! Round the values of x
+  friend inline self_t round(const self_t& x) {
+#if SVL_SIMD_LEVEL < SVL_AVX2
+    return self_t(round(x.data.v0_3), round(x.data.v4_7));
+#else
+    return _mm256_round_ps(x.data, _MM_FROUND_TO_NEAREST_INT | _MM_FROUND_NO_EXC);
+#endif
+  }
+  
 };
 
 
